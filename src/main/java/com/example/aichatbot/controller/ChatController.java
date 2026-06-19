@@ -10,20 +10,20 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    private final ChatService service;
+    private final ChatService chatService;
 
-    public ChatController(ChatService service) {
-        this.service = service;
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
     }
 
     @PostMapping
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
-        String answer = service.chat(request.sessionId(), request.message());
+        String answer = chatService.chat(request.sessionId(), request.message());
         return new ChatResponse(answer);
     }
 
     @DeleteMapping("/{sessionId}")
     public void clearMemory(@PathVariable String sessionId) {
-        service.clearMemory(sessionId);
+        chatService.clearMemory(sessionId);
     }
 }

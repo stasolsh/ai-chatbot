@@ -4,16 +4,15 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.mapping.DenseVectorSimilarity;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
-import co.elastic.clients.elasticsearch._types.mapping.DenseVectorSimilarity;
 import java.io.IOException;
 
 @Service
 public class ElasticsearchIndexInitializer {
     private static final String INDEX_NAME = "document";
     private final ElasticsearchClient client;
-    private final EmbeddingService embeddingService;
+    private final EmbeddingServiceImpl embeddingService;
 
-    public ElasticsearchIndexInitializer(ElasticsearchClient client, EmbeddingService embeddingService) {
+    public ElasticsearchIndexInitializer(ElasticsearchClient client, EmbeddingServiceImpl embeddingService) {
         this.client = client;
         this.embeddingService = embeddingService;
     }
