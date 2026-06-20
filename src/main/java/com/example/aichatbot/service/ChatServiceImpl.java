@@ -33,7 +33,7 @@ public final class ChatServiceImpl implements ChatService {
     @Override
     public String chat(String sessionId, String message) {
         String context = documentSearchService.findRelevantContext(message);
-        List<ChatMessage> messages = new ArrayList<>(memoryService.getMessages(sessionId));
+        List<ChatMessage> messages = memoryService.getMessages(sessionId);
         if (!context.isBlank()) {
             messages.add(SystemMessage.from(DOCUMENT_CONTEXT.formatted(context)));
         }
