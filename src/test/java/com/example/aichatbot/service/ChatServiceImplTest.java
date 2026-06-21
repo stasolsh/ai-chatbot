@@ -29,7 +29,7 @@ class ChatServiceImplTest {
     private static final String CONTEXT = "Context";
     private static final String AI_ANSWER = "Ai message";
 
-    private ChatServiceImpl chatServiceImpl;
+    private ChatService chatServiceImpl;
 
     @Mock
     private ChatModel model;
