@@ -1,5 +1,11 @@
 # AI Chatbot
-
+![Build](https://github.com/stasolsh/ai-chatbot/actions/workflows/custom-action.yml/badge.svg)
+![Coverage](https://codecov.io/gh/stasolsh/ai-chatbot/branch/master/graph/badge.svg)
+![Java](https://img.shields.io/badge/Java-21-red)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6DB33F?logo=springboot)
+![Maven](https://img.shields.io/badge/Maven-3.9+-blue)
+![JUnit](https://img.shields.io/badge/JUnit-5-red?logo=junit5)
+![License](https://img.shields.io/badge/license-MIT-green)
 A simple AI chatbot built with Java 21, Spring Boot, LangChain4j, Ollama, and Elasticsearch.
 
 The project demonstrates:
