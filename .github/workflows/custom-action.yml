@@ -1,0 +1,28 @@
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    types: [ opened, synchronize, reopened, closed ]
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+      - name: Run the Maven verify phase
+        run: mvn clean test --batch-mode --update-snapshots verify
+      - uses: stasolsh/spring-boot-quality-gate-action@v1
+        with:
+          coverage-threshold: 60
+          build-tool: auto
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/site/jacoco/jacoco.xml
+          fail_ci_if_error: true
