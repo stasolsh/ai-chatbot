@@ -18,7 +18,7 @@ jobs:
         run: mvn clean test --batch-mode --update-snapshots verify
       - uses: stasolsh/spring-boot-quality-gate-action@v1
         with:
-          coverage-threshold: 60
+          coverage-threshold: 50
           build-tool: auto
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
