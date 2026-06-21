@@ -6,6 +6,7 @@
 ![Maven](https://img.shields.io/badge/Maven-3.9+-blue)
 ![JUnit](https://img.shields.io/badge/JUnit-5-red?logo=junit5)
 ![License](https://img.shields.io/badge/license-MIT-green)
+
 A simple AI chatbot built with Java 21, Spring Boot, LangChain4j, Ollama, and Elasticsearch.
 
 The project demonstrates:
