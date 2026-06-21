@@ -9,7 +9,7 @@ public final class DocumentServiceImpl implements DocumentService {
     private final DocumentProcessorRegistry documentProcessorRegistry;
     private final FileTypeResolver fileTypeResolver;
 
-    private DocumentServiceImpl(DocumentProcessorRegistry documentProcessorRegistry, FileTypeResolver fileTypeResolver) {
+    public DocumentServiceImpl(DocumentProcessorRegistry documentProcessorRegistry, FileTypeResolver fileTypeResolver) {
         this.documentProcessorRegistry = documentProcessorRegistry;
         this.fileTypeResolver = fileTypeResolver;
     }

@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DocumentSearchServiceImplTest {
-    private static final int TOP_K = 5;
     private static final String CONTENT = "Hello";
     private static final StoredChunk CHUNK_1 = new StoredChunk("1", "1", 1, CONTENT, new float[]{1, 1});
     private static final List<StoredChunk> CHUNK_LIST = List.of(CHUNK_1);
