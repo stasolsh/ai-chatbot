@@ -15,15 +15,15 @@ public final class DocumentIngestionServiceImpl implements DocumentIngestionServ
 
     private static final int PREVIEW_LENGTH = 500;
 
-    private final DocumentServiceImpl documentService;
+    private final DocumentService documentService;
     private final ChunkingService chunkingService;
-    private final EmbeddingServiceImpl embeddingService;
+    private final EmbeddingService embeddingService;
     private final ChunkRepository chunkRepository;
 
     public DocumentIngestionServiceImpl(
-            DocumentServiceImpl documentService,
+            DocumentService documentService,
             ChunkingService chunkingService,
-            EmbeddingServiceImpl embeddingService,
+            EmbeddingService embeddingService,
             ChunkRepository chunkRepository) {
 
         this.documentService = documentService;
