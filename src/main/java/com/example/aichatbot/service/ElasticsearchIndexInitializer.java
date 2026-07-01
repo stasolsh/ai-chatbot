@@ -10,9 +10,9 @@ import java.io.IOException;
 public class ElasticsearchIndexInitializer {
     private static final String INDEX_NAME = "document";
     private final ElasticsearchClient client;
-    private final EmbeddingServiceImpl embeddingService;
+    private final EmbeddingService embeddingService;
 
-    public ElasticsearchIndexInitializer(ElasticsearchClient client, EmbeddingServiceImpl embeddingService) {
+    public ElasticsearchIndexInitializer(ElasticsearchClient client, EmbeddingService embeddingService) {
         this.client = client;
         this.embeddingService = embeddingService;
     }
