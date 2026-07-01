@@ -11,11 +11,15 @@ A simple AI chatbot built with Java 21, Spring Boot, LangChain4j, Ollama, and El
 
 The project demonstrates:
 
-* Local LLM integration with Ollama
-* Conversational memory
-* PDF and TXT document upload
-* REST API
-* Foundation for Retrieval-Augmented Generation (RAG)
+- Local LLM integration with Ollama
+- Session-based conversational memory
+- Retrieval-Augmented Generation (RAG)
+- PDF and TXT document processing
+- Automatic document chunking
+- Vector embedding generation
+- Elasticsearch vector storage
+- Semantic document search
+- REST API
 
 ## Technology Stack
 
@@ -29,21 +33,32 @@ The project demonstrates:
 
 ## Architecture
 
-```text
-User
-  │
-  ▼
-Spring Boot REST API
-  │
-  ▼
-LangChain4j
-  │
-  ▼
-Ollama (Llama 3.1)
-  │
-  ▼
-Elasticsearch
-```
+                +----------------------+
+                |      REST API        |
+                +----------+-----------+
+                           |
+          +----------------+----------------+
+          |                                 |
+          ▼                                 ▼
+    Document Upload                     Chat Request
+          |                                 |
+          ▼                                 ▼
+     Document Service                  Chat Memory
+          |                                 |
+          ▼                                 ▼
+    Document Processor                 Document Search
+          |                                 |
+          ▼                                 ▼
+     Chunking Service                Elasticsearch KNN
+          |                                 |
+          ▼                                 ▼
+      Embedding Service <----------> Ollama Embeddings
+          |
+          ▼
+     Elasticsearch
+          |
+          ▼
+       Ollama Chat
 
 ## Features
 
@@ -91,7 +106,55 @@ Current functionality:
 * Return document statistics
 * Return text preview
 
-Future versions will store document chunks in Elasticsearch and use them for RAG.
+### Document Processing
+
+Supported formats:
+
+- TXT
+- PDF
+
+The upload pipeline performs the following steps:
+
+```text
+Upload
+   ↓
+Extract text
+   ↓
+Split into overlapping chunks
+   ↓
+Generate vector embeddings
+   ↓
+Store chunks in Elasticsearch
+```
+
+The project uses the Strategy pattern to support multiple document processors, making it easy to add new document formats such as DOCX or HTML.
+
+Current supported processors:
+
+- TXT
+- PDF
+
+### Retrieval-Augmented Generation (RAG)
+
+During a chat request:
+
+```text
+User Question
+      ↓
+Generate Question Embedding
+      ↓
+Semantic Search in Elasticsearch
+      ↓
+Retrieve Relevant Chunks
+      ↓
+Combine with Chat Memory
+      ↓
+Ollama
+      ↓
+AI Response
+```
+
+Conversation memory and retrieved document context are combined to produce context-aware responses.
 
 ## Running the Application
 
@@ -210,17 +273,57 @@ curl -X POST http://localhost:8080/api/documents/upload \
 ```text
 src/main/java
 ├── config
-│   └── AiConfig
 ├── controller
 │   ├── ChatController
 │   └── DocumentController
 ├── dto
-│   ├── ChatRequest
-│   ├── ChatResponse
-│   └── DocumentUploadResponse
+├── repository
+│   └── ChunkRepository
 ├── service
 │   ├── ChatService
 │   ├── ChatMemoryService
-│   └── DocumentService
-└── AiChatbotApplication
+│   ├── DocumentIngestionService
+│   ├── DocumentSearchService
+│   ├── DocumentService
+│   ├── ChunkingService
+│   ├── EmbeddingService
+│   ├── ElasticsearchIndexInitializer
+│   ├── DocumentProcessor
+│   └── DocumentProcessorRegistry
+└── processor
+    ├── PdfDocumentProcessor
+    └── TxtDocumentProcessor
+```
+## End-to-End Workflow
+
+```text
+Upload PDF
+      │
+      ▼
+Extract Text
+      │
+      ▼
+Chunk Document
+      │
+      ▼
+Generate Embeddings
+      │
+      ▼
+Store in Elasticsearch
+      │
+      ▼
+────────────────────────────────────
+User asks a question
+      │
+      ▼
+Generate Question Embedding
+      │
+      ▼
+Retrieve Relevant Chunks
+      │
+      ▼
+Combine with Chat Memory
+      │
+      ▼
+Generate AI Response
 ```
