@@ -10,18 +10,21 @@ import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(ChatController.class)
@@ -60,5 +63,27 @@ public class ChatControllerTest {
                 .andExpect(status().isOk());
         verify(chatServiceImpl).clearMemory(sessionId);
 
+    }
+
+    @Test
+    void shouldStreamChatResponse() throws Exception {
+        SseEmitter emitter = new SseEmitter();
+
+        when(chatServiceImpl.stream("user1", "Hello"))
+                .thenReturn(emitter);
+
+        MvcResult result = mockMvc.perform(get("/api/chat/stream")
+                        .param("sessionId", "user1")
+                        .param("message", "Hello")
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        emitter.send(CHECK_RESULT);
+        emitter.complete();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(CHECK_RESULT)));
     }
 }
