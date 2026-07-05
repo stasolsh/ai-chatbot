@@ -5,9 +5,11 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,5 +60,16 @@ public class AiConfig {
                         new JacksonJsonpMapper());
 
         return new ElasticsearchClient(transport);
+    }
+
+    @Bean
+    public StreamingChatModel streamingChatModel(
+            @Value("${ollama.base-url}") String baseUrl,
+            @Value("${ollama.model}") String model) {
+
+        return OllamaStreamingChatModel.builder()
+                .baseUrl(baseUrl)
+                .modelName(model)
+                .build();
     }
 }

@@ -4,11 +4,15 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
+
 
 @Service
 public final class ChatServiceImpl implements ChatService {
@@ -23,11 +27,13 @@ public final class ChatServiceImpl implements ChatService {
     private final ChatModel model;
     private final ChatMemoryService memoryService;
     private final DocumentSearchService documentSearchService;
+    private final StreamingChatModel streamingChatModel;
 
-    public ChatServiceImpl(ChatModel model, ChatMemoryService memoryService, DocumentSearchService documentSearchService) {
+    public ChatServiceImpl(ChatModel model, ChatMemoryService memoryService, DocumentSearchService documentSearchService, StreamingChatModel streamingChatModel) {
         this.model = model;
         this.memoryService = memoryService;
         this.documentSearchService = documentSearchService;
+        this.streamingChatModel = streamingChatModel;
     }
 
     @Override
@@ -43,6 +49,39 @@ public final class ChatServiceImpl implements ChatService {
         memoryService.addUserMessage(sessionId, message);
         memoryService.addAiMessage(sessionId, answer);
         return answer;
+    }
+
+    public SseEmitter stream(String sessionId, String message) {
+        SseEmitter emitter = new SseEmitter();
+
+        StringBuilder answer = new StringBuilder();
+        List<ChatMessage> messages = memoryService.getMessages(sessionId);
+        streamingChatModel.chat(messages, new StreamingChatResponseHandler() {
+
+            @Override
+            public void onPartialResponse(String token) {
+                answer.append(token);
+                try {
+                    emitter.send(token);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void onCompleteResponse(ChatResponse response) {
+                memoryService.addUserMessage(sessionId, message);
+                memoryService.addAiMessage(sessionId, answer.toString());
+                emitter.complete();
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                emitter.completeWithError(error);
+            }
+        });
+
+        return emitter;
     }
 
     @Override
