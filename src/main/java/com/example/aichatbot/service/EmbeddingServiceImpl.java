@@ -1,22 +1,21 @@
 package com.example.aichatbot.service;
 
-import dev.langchain4j.model.embedding.EmbeddingModel;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-public final class EmbeddingServiceImpl implements EmbeddingService{
+public final class EmbeddingServiceImpl implements EmbeddingService {
 
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingProvider provider;
 
-    public EmbeddingServiceImpl(EmbeddingModel embeddingModel) {
-        this.embeddingModel = embeddingModel;
+    public EmbeddingServiceImpl(EmbeddingProviderRegistry registry,
+                                @Value("${embedding.provider}") String providerName) {
+        this.provider = registry.get(providerName);
     }
+
 
     @Override
     public float[] embed(String text) {
-        return embeddingModel
-                .embed(text)
-                .content()
-                .vector();
+        return provider.embed(text);
     }
 }

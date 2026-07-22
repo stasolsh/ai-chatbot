@@ -14,11 +14,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class EmbeddingServiceImplTest {
+class OllamaEmbeddingProviderTest {
+
     private static final String TEXT = "Hello World";
     private static final float[] VECTOR = {1.0f, 2.0f, 3.0f};
-
-    private EmbeddingService embeddingService;
 
     @Mock
     private EmbeddingModel embeddingModel;
@@ -29,19 +28,20 @@ public class EmbeddingServiceImplTest {
     @Mock
     private Embedding embedding;
 
+    private EmbeddingProvider provider;
+
     @BeforeEach
     void setUp() {
-        embeddingService = new EmbeddingServiceImpl(embeddingModel);
+        provider = new OllamaEmbeddingProvider(embeddingModel);
     }
 
     @Test
     void shouldReturnEmbeddingVector() {
-
         when(embeddingModel.embed(TEXT)).thenReturn(response);
         when(response.content()).thenReturn(embedding);
         when(embedding.vector()).thenReturn(VECTOR);
 
-        float[] result = embeddingService.embed(TEXT);
+        float[] result = provider.embed(TEXT);
 
         assertArrayEquals(VECTOR, result);
 
