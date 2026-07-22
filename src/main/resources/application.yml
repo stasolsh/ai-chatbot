@@ -8,3 +8,6 @@ ollama:
 elasticsearch:
   hostname: localhost
   port: 9200
+
+embedding:
+  provider: ollama
