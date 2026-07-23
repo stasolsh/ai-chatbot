@@ -30,35 +30,39 @@ The project demonstrates:
 * Elasticsearch
 * Docker Compose
 * Apache PDFBox
+* Spring MVC Server-Sent Events (SSE)
+* Spring Data JPA (Conversation Persistence)
 
 ## Architecture
 
-                +----------------------+
-                |      REST API        |
-                +----------+-----------+
-                           |
-          +----------------+----------------+
-          |                                 |
-          ▼                                 ▼
-    Document Upload                     Chat Request
-          |                                 |
-          ▼                                 ▼
-     Document Service                  Chat Memory
-          |                                 |
-          ▼                                 ▼
-    Document Processor                 Document Search
-          |                                 |
-          ▼                                 ▼
-     Chunking Service                Elasticsearch KNN
-          |                                 |
-          ▼                                 ▼
-      Embedding Service <----------> Ollama Embeddings
-          |
-          ▼
-     Elasticsearch
-          |
-          ▼
-       Ollama Chat
+```text
+                REST API
+                   │
+       ┌───────────┴────────────┐
+       ▼                        ▼
+Document Upload            Chat Request
+       │                        │
+       ▼                        ▼
+Document Service          Chat Memory
+       │                        │
+       ▼                        ▼
+Document Processor      Document Search
+       │                        │
+       ▼                        ▼
+Chunking Service     StreamingChatModel
+       │                        │
+       ▼                        ▼
+Embedding Service      SSE Response
+       │
+       ▼
+Embedding Provider
+       │
+       ▼
+Ollama Embeddings
+       │
+       ▼
+Elasticsearch
+```
 
 ## Features
 
@@ -152,6 +156,28 @@ Combine with Chat Memory
 Ollama
       ↓
 AI Response
+```
+
+## Streaming Responses
+
+The chatbot supports real-time AI response streaming using Server-Sent Events (SSE).
+
+Streaming pipeline:
+
+```text
+Client
+   │
+   ▼
+ChatController
+   │
+   ▼
+ChatService
+   │
+   ▼
+StreamingChatModel
+   │
+   ▼
+Token 1 → Token 2 → Token 3 → ...
 ```
 
 Conversation memory and retrieved document context are combined to produce context-aware responses.
@@ -268,6 +294,33 @@ curl -X POST http://localhost:8080/api/documents/upload \
 }
 ```
 
+## Multiple Embedding Providers
+
+The embedding layer is built around a provider abstraction.
+
+```text
+EmbeddingService
+        │
+        ▼
+EmbeddingProvider
+        │
+        ▼
+OllamaEmbeddingProvider
+```
+## Conversation Persistence
+
+Conversation history is managed through a dedicated ChatMemoryService.
+
+```text
+ChatService
+      │
+      ▼
+ChatMemoryService
+      │
+      ▼
+Persistence Layer
+```
+
 ## Project Structure
 
 ```text
@@ -317,13 +370,22 @@ User asks a question
       │
       ▼
 Generate Question Embedding
-      │
-      ▼
+        │
+        ▼
+Semantic Search
+        │
+        ▼
 Retrieve Relevant Chunks
-      │
-      ▼
+        │
+        ▼
 Combine with Chat Memory
-      │
-      ▼
-Generate AI Response
+        │
+        ▼
+StreamingChatModel
+        │
+        ▼
+Stream AI Tokens (SSE)
+        │
+        ▼
+Persist Conversation
 ```
