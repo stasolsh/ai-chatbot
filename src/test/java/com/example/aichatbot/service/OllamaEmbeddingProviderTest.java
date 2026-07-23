@@ -10,14 +10,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OllamaEmbeddingProviderTest {
+public class OllamaEmbeddingProviderTest {
 
     private static final String TEXT = "Hello World";
     private static final float[] VECTOR = {1.0f, 2.0f, 3.0f};
+    private static final String OLLAMA = "ollama";
 
     @Mock
     private EmbeddingModel embeddingModel;
@@ -48,5 +50,9 @@ class OllamaEmbeddingProviderTest {
         verify(embeddingModel).embed(TEXT);
         verify(response).content();
         verify(embedding).vector();
+    }
+    @Test
+    public void shouldReturnName() {
+        assertEquals(OLLAMA, provider.name());
     }
 }
