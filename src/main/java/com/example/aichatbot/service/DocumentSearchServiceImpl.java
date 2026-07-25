@@ -2,6 +2,7 @@ package com.example.aichatbot.service;
 
 import com.example.aichatbot.dto.StoredChunk;
 import com.example.aichatbot.repository.ChunkRepository;
+import com.example.aichatbot.repository.ElasticsearchChunkRepository;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -12,11 +13,11 @@ import java.util.stream.Collectors;
 public final class DocumentSearchServiceImpl implements DocumentSearchService {
     private static final int TOP_K = 5;
     private final EmbeddingServiceImpl embeddingService;
-    private final ChunkRepository chunkRepository;
+    private final ChunkRepository elasticsearchChunkRepository;
 
-    public DocumentSearchServiceImpl(EmbeddingServiceImpl embeddingService, ChunkRepository chunkRepository) {
+    public DocumentSearchServiceImpl(EmbeddingServiceImpl embeddingService, ChunkRepository elasticsearchChunkRepository) {
         this.embeddingService = embeddingService;
-        this.chunkRepository = chunkRepository;
+        this.elasticsearchChunkRepository = elasticsearchChunkRepository;
     }
 
     @Override
@@ -24,7 +25,7 @@ public final class DocumentSearchServiceImpl implements DocumentSearchService {
         try {
             float[] questionEmbedding = embeddingService.embed(question);
 
-            List<StoredChunk> chunks = chunkRepository.search(questionEmbedding, TOP_K);
+            List<StoredChunk> chunks = elasticsearchChunkRepository.search(questionEmbedding, TOP_K);
             return chunks.stream()
                     .map(StoredChunk::content)
                     .collect(Collectors.joining("\n\n---\n\n"));

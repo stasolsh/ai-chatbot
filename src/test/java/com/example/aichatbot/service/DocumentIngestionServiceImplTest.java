@@ -2,7 +2,7 @@ package com.example.aichatbot.service;
 
 import com.example.aichatbot.dto.DocumentChunk;
 import com.example.aichatbot.dto.DocumentUploadResponse;
-import com.example.aichatbot.repository.ChunkRepository;
+import com.example.aichatbot.repository.ElasticsearchChunkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,11 +66,11 @@ public class DocumentIngestionServiceImplTest {
     @Mock
     private EmbeddingServiceImpl embeddingService;
     @Mock
-    private ChunkRepository chunkRepository;
+    private ElasticsearchChunkRepository elasticsearchChunkRepository;
 
     @BeforeEach
     void setUp() {
-        documentIngestionService = new DocumentIngestionServiceImpl(documentService, chunkingService, embeddingService, chunkRepository);
+        documentIngestionService = new DocumentIngestionServiceImpl(documentService, chunkingService, embeddingService, elasticsearchChunkRepository);
     }
 
     @Test

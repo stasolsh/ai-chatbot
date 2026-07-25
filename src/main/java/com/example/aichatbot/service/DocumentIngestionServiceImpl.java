@@ -4,6 +4,7 @@ import com.example.aichatbot.dto.DocumentChunk;
 import com.example.aichatbot.dto.DocumentUploadResponse;
 import com.example.aichatbot.dto.StoredChunk;
 import com.example.aichatbot.repository.ChunkRepository;
+import com.example.aichatbot.repository.ElasticsearchChunkRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,18 +19,18 @@ public final class DocumentIngestionServiceImpl implements DocumentIngestionServ
     private final DocumentService documentService;
     private final ChunkingService chunkingService;
     private final EmbeddingService embeddingService;
-    private final ChunkRepository chunkRepository;
+    private final ChunkRepository elasticsearchChunkRepository;
 
     public DocumentIngestionServiceImpl(
             DocumentService documentService,
             ChunkingService chunkingService,
             EmbeddingService embeddingService,
-            ChunkRepository chunkRepository) {
+            ChunkRepository elasticsearchChunkRepository) {
 
         this.documentService = documentService;
         this.chunkingService = chunkingService;
         this.embeddingService = embeddingService;
-        this.chunkRepository = chunkRepository;
+        this.elasticsearchChunkRepository = elasticsearchChunkRepository;
     }
 
     @Override
@@ -38,7 +39,7 @@ public final class DocumentIngestionServiceImpl implements DocumentIngestionServ
 
         for (DocumentChunk documentChunk : chunkingService.chunk(text)) {
             StoredChunk storedChunk = toStoredChunk(documentChunk);
-            chunkRepository.save(storedChunk);
+            elasticsearchChunkRepository.save(storedChunk);
         }
 
         return new DocumentUploadResponse(
