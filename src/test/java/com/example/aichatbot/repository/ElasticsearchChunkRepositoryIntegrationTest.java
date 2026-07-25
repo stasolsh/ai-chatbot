@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 @Testcontainers
-public class ChunkRepositoryIntegrationTest {
+public class ElasticsearchChunkRepositoryIntegrationTest {
 
     private static final String INDEX_NAME = "documents";
     private static final int DIMS = 3;
@@ -33,7 +33,7 @@ public class ChunkRepositoryIntegrationTest {
                     .withEnv("xpack.security.enabled", "false")
                     .withEnv("discovery.type", "single-node");
 
-    private ChunkRepository repository;
+    private ElasticsearchChunkRepository repository;
     private ElasticsearchClient client;
 
     @BeforeEach
@@ -48,7 +48,7 @@ public class ChunkRepositoryIntegrationTest {
         );
 
         client = new ElasticsearchClient(transport);
-        repository = new ChunkRepository(client);
+        repository = new ElasticsearchChunkRepository(client);
 
         createIndex();
     }

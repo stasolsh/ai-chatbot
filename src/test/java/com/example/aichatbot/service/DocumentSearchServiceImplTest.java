@@ -1,7 +1,7 @@
 package com.example.aichatbot.service;
 
 import com.example.aichatbot.dto.StoredChunk;
-import com.example.aichatbot.repository.ChunkRepository;
+import com.example.aichatbot.repository.ElasticsearchChunkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,17 +25,17 @@ public class DocumentSearchServiceImplTest {
     @Mock
     private EmbeddingServiceImpl embeddingService;
     @Mock
-    private ChunkRepository chunkRepository;
+    private ElasticsearchChunkRepository elasticsearchChunkRepository;
 
     @BeforeEach
     void setUp() {
-        documentSearchService = new DocumentSearchServiceImpl(embeddingService, chunkRepository);
+        documentSearchService = new DocumentSearchServiceImpl(embeddingService, elasticsearchChunkRepository);
     }
 
     @Test
     void shouldFindDocumentByID() throws IOException {
         when(embeddingService.embed(anyString())).thenReturn(new float[]{1f, 2f, 3f, 4f});
-        when(chunkRepository.search(any(float[].class), anyInt())).thenReturn(CHUNK_LIST);
+        when(elasticsearchChunkRepository.search(any(float[].class), anyInt())).thenReturn(CHUNK_LIST);
 
         String relevantContext = documentSearchService.findRelevantContext(CONTENT);
 
@@ -46,7 +46,7 @@ public class DocumentSearchServiceImplTest {
     @Test
     public void shouldThrowExceptionWhenProcessorNotExist() throws IOException {
         when(embeddingService.embed(anyString())).thenReturn(new float[]{1f, 2f, 3f, 4f});
-        when(chunkRepository.search(any(float[].class), anyInt())).thenThrow(new IOException());
+        when(elasticsearchChunkRepository.search(any(float[].class), anyInt())).thenThrow(new IOException());
 
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
