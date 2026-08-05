@@ -19,17 +19,18 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class DocumentSearchServiceImplTest {
     private static final String CONTENT = "Hello";
-    private static final StoredChunk CHUNK_1 = new StoredChunk("1", "1", 1, CONTENT, new float[]{1, 1});
+    private static final StoredChunk CHUNK_1 = new StoredChunk("1", "1","source name", 1, CONTENT, new float[]{1, 1});
     private static final List<StoredChunk> CHUNK_LIST = List.of(CHUNK_1);
     private DocumentSearchService documentSearchService;
     @Mock
     private EmbeddingServiceImpl embeddingService;
     @Mock
     private ElasticsearchChunkRepository elasticsearchChunkRepository;
-
+    @Mock
+    private ReciprocalRankFusion reciprocalRankFusion;
     @BeforeEach
     void setUp() {
-        documentSearchService = new DocumentSearchServiceImpl(embeddingService, elasticsearchChunkRepository);
+        documentSearchService = new DocumentSearchServiceImpl(embeddingService, elasticsearchChunkRepository, reciprocalRankFusion);
     }
 
     @Test

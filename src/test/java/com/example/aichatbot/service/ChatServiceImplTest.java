@@ -1,5 +1,6 @@
 package com.example.aichatbot.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -41,6 +42,9 @@ class ChatServiceImplTest {
     private ChatModel model;
 
     @Mock
+    private ObjectMapper objectMapper;
+
+    @Mock
     private ChatMemoryServiceImpl memoryService;
 
     @Mock
@@ -51,7 +55,7 @@ class ChatServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        chatServiceImpl = new ChatServiceImpl(model, memoryService, documentSearchService, streamingChatModel);
+        chatServiceImpl = new ChatServiceImpl(objectMapper, model, memoryService, documentSearchService, streamingChatModel);
     }
 
     @Test

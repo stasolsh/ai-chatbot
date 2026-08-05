@@ -3,10 +3,8 @@ package com.example.aichatbot.repository;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.example.aichatbot.dto.ChunkDocument;
-import com.example.aichatbot.dto.ChunkSearchResult;
+import com.example.aichatbot.dto.SearchResult;
 import com.example.aichatbot.dto.StoredChunk;
-import com.example.aichatbot.exception.DocumentSearchException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -16,13 +14,11 @@ import java.util.stream.IntStream;
 
 @Service
 public class ElasticsearchChunkRepository implements ChunkRepository {
-    private static final String INDEX_NAME = "document-chunks";
-
     private final ElasticsearchClient client;
-
     public ElasticsearchChunkRepository(ElasticsearchClient client) {
         this.client = client;
     }
+
     @Override
     public void save(StoredChunk chunk) throws IOException {
         client.index(i -> i
@@ -30,6 +26,7 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
                 .id(chunk.id())
                 .document(chunk));
     }
+
     @Override
     public List<StoredChunk> search(float[] embedding, int limit) throws IOException {
         SearchResponse<StoredChunk> response = client.search(s -> s
@@ -50,88 +47,71 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
     }
 
     @Override
-    public List<ChunkSearchResult> searchByText(
-            String query,
-            int limit
-    ) {
-        try {
-            SearchResponse<ChunkDocument> response = client.search(
-                    request -> request
-                            .index(INDEX_NAME)
-                            .size(limit)
-                            .query(q -> q
-                                    .match(m -> m
-                                            .field("content")
-                                            .query(query)
-                                    )
-                            ),
-                    ChunkDocument.class
-            );
+    public List<SearchResult> searchByText(String query, int limit) throws IOException {
+        SearchResponse<StoredChunk> response = client.search(
+                search -> search
+                        .index("documents")
+                        .size(limit)
+                        .query(q -> q.match(m -> m
+                                .field("content")
+                                .query(query)
+                        )),
+                StoredChunk.class
+        );
 
-            return response.hits()
-                    .hits()
-                    .stream()
-                    .filter(hit -> hit.source() != null)
-                    .map(hit -> new ChunkSearchResult(
-                            hit.id(),
-                            hit.source().content(),
-                            hit.score() == null
-                                    ? 0.0
-                                    : hit.score()
-                    ))
-                    .toList();
-
-        } catch (IOException e) {
-            throw new DocumentSearchException(
-                    "Failed to execute BM25 search",
-                    e
-            );
-        }
+        return response.hits()
+                .hits()
+                .stream()
+                .map(this::toSearchResult)
+                .toList();
     }
 
     @Override
-    public List<ChunkSearchResult> searchByVector(
-            float[] queryVector,
+    public List<SearchResult> searchByVector(
+            float[] embedding,
             int limit
-    ) {
-        try {
-            SearchResponse<ChunkDocument> response = client.search(
-                    request -> request
-                            .index(INDEX_NAME)
-                            .size(limit)
-                            .knn(knn -> knn
-                                    .field("embedding")
-                                    .queryVector(toFloatList(queryVector))
-                                    .k(limit)
-                                    .numCandidates(Math.max(limit * 10, 50))
-                            ),
-                    ChunkDocument.class
-            );
+    ) throws IOException {
+        SearchResponse<StoredChunk> response = client.search(
+                search -> search
+                        .index("documents")
+                        .knn(knn -> knn
+                                .field("embedding")
+                                .queryVector(toFloatList(embedding))
+                                .k(limit)
+                                .numCandidates(50)
+                        ),
+                StoredChunk.class
+        );
 
-            return response.hits()
-                    .hits()
-                    .stream()
-                    .filter(hit -> hit.source() != null)
-                    .map(hit -> new ChunkSearchResult(
-                            hit.id(),
-                            hit.source().content(),
-                            hit.score() == null
-                                    ? 0.0
-                                    : hit.score()
-                    ))
-                    .toList();
+        return response.hits()
+                .hits()
+                .stream()
+                .map(this::toSearchResult)
+                .toList();
+    }
 
-        } catch (IOException e) {
-            throw new DocumentSearchException(
-                    "Failed to execute vector search",
-                    e
+    private SearchResult toSearchResult(Hit<StoredChunk> hit) {
+        StoredChunk chunk = hit.source();
+
+        if (chunk == null) {
+            throw new IllegalStateException(
+                    "Elasticsearch hit has no source: " + hit.id()
             );
         }
+
+        return new SearchResult(
+                hit.id(),
+                chunk.documentId(),
+                chunk.sourceName(),
+                chunk.chunkNumber(),
+                chunk.content(),
+                hit.score() == null ? 0.0 : hit.score()
+        );
     }
 
     private List<Float> toFloatList(float[] vector) {
         return IntStream.range(0, vector.length)
-                .mapToObj(i -> vector[i])
+                .mapToObj(index -> vector[index])
                 .toList();
     }
 }

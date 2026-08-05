@@ -1,7 +1,8 @@
 package com.example.aichatbot.controller;
 
+import com.example.aichatbot.dto.ChatApiResponse;
 import com.example.aichatbot.dto.ChatRequest;
-import com.example.aichatbot.dto.ChatResponse;
+import com.example.aichatbot.dto.ChatResult;
 import com.example.aichatbot.service.ChatServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ChatController.class)
 @AutoConfigureJsonTesters
 public class ChatControllerTest {
+    private static final ChatResult CHAT_RESULT_OBJECT = new ChatResult("Any possible answer.", List.of());
     private static final String CHECK_RESULT = "Any possible answer.";
     private static final ChatRequest CHAT_REQUEST = new ChatRequest("stas", "My name");
     @Autowired
@@ -39,11 +42,11 @@ public class ChatControllerTest {
     @Autowired
     private JacksonTester<ChatRequest> chatRequestJacksonTester;
     @Autowired
-    private JacksonTester<ChatResponse> checkEventJacksonList;
+    private JacksonTester<ChatApiResponse> checkEventJacksonList;
 
     @Test
     public void shouldVerifyChatEndpoint() throws Exception {
-        when(chatServiceImpl.chat(anyString(), anyString())).thenReturn(CHECK_RESULT);
+        when(chatServiceImpl.chatResult(anyString(), anyString())).thenReturn(CHAT_RESULT_OBJECT);
         MvcResult mvcResult = mockMvc.perform(
                         MockMvcRequestBuilders.post("/api/chat")
                                 .content(chatRequestJacksonTester.write(CHAT_REQUEST).getJson())
@@ -51,7 +54,7 @@ public class ChatControllerTest {
                                 .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
-        ChatResponse resultEvents = checkEventJacksonList.parseObject(mvcResult.getResponse().getContentAsString());
+        ChatApiResponse resultEvents = checkEventJacksonList.parseObject(mvcResult.getResponse().getContentAsString());
 
         assertEquals(CHECK_RESULT.toString(), resultEvents.answer());
     }

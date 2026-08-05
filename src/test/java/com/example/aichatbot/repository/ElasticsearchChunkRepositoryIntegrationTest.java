@@ -63,6 +63,7 @@ public class ElasticsearchChunkRepositoryIntegrationTest {
         StoredChunk chunk = new StoredChunk(
                 "chunk-1",
                 "doc-1",
+                "sours name",
                 0,
                 "Java Spring Boot Elasticsearch AI chatbot",
                 new float[]{1.0f, 0.0f, 0.0f}
