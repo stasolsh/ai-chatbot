@@ -1,7 +1,8 @@
 package com.example.aichatbot.controller;
 
+import com.example.aichatbot.dto.ChatApiResponse;
 import com.example.aichatbot.dto.ChatRequest;
-import com.example.aichatbot.dto.ChatResponse;
+import com.example.aichatbot.dto.ChatResult;
 import com.example.aichatbot.service.ChatService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -19,9 +20,18 @@ public class ChatController {
     }
 
     @PostMapping
-    public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
-        String answer = chatService.chat(request.sessionId(), request.message());
-        return new ChatResponse(answer);
+    public ChatApiResponse chat(
+            @Valid @RequestBody ChatRequest request
+    ) {
+        ChatResult result = chatService.chatResult(
+                request.sessionId(),
+                request.message()
+        );
+
+        return new ChatApiResponse(
+                result.answer(),
+                result.sources()
+        );
     }
 
     @DeleteMapping("/{sessionId}")

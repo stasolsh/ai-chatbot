@@ -1,11 +1,11 @@
 package com.example.aichatbot.dto;
 
-public record StoredChunk(
+public record SearchResult(
         String id,
         String documentId,
         String sourceName,
         int chunkNumber,
         String content,
-        float[] embedding
+        double score
 ) {
 }

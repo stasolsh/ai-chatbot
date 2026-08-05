@@ -36,24 +36,25 @@ public final class DocumentIngestionServiceImpl implements DocumentIngestionServ
     @Override
     public DocumentUploadResponse ingest(MultipartFile file) throws IOException {
         String text = documentService.extractText(file);
+        String sourceName = file.getOriginalFilename();
 
         for (DocumentChunk documentChunk : chunkingService.chunk(text)) {
-            StoredChunk storedChunk = toStoredChunk(documentChunk);
-            elasticsearchChunkRepository.save(storedChunk);
+            elasticsearchChunkRepository.save(toStoredChunk(documentChunk, sourceName));
         }
 
         return new DocumentUploadResponse(
-                file.getOriginalFilename(),
+                sourceName,
                 file.getSize(),
                 text.length(),
                 preview(text)
         );
     }
 
-    private StoredChunk toStoredChunk(DocumentChunk chunk) {
+    private StoredChunk toStoredChunk(DocumentChunk chunk, String sourceName) {
         return new StoredChunk(
                 UUID.randomUUID().toString(),
                 chunk.documentId(),
+                sourceName,
                 chunk.chunkNumber(),
                 chunk.content(),
                 embeddingService.embed(chunk.content())

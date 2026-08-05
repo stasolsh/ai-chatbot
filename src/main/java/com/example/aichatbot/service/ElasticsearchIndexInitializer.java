@@ -34,6 +34,7 @@ public class ElasticsearchIndexInitializer {
                 .index(INDEX_NAME)
                 .mappings(m -> m
                         .properties("documentId", p -> p.keyword(k -> k))
+                        .properties("sourceName", p -> p.keyword(k -> k))
                         .properties("chunkNumber", p -> p.integer(i -> i))
                         .properties("content", p -> p.text(t -> t))
                         .properties("embedding", p -> p.denseVector(v -> v

@@ -1,11 +1,11 @@
 package com.example.aichatbot.dto;
 
-public record StoredChunk(
-        String id,
+public record DocumentSource(
+        String citation,
         String documentId,
         String sourceName,
         int chunkNumber,
-        String content,
-        float[] embedding
+        String excerpt,
+        double score
 ) {
 }
