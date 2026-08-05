@@ -19,6 +19,10 @@ The project demonstrates:
 - Vector embedding generation
 - Elasticsearch vector storage
 - Semantic document search
+- Hybrid Search (BM25 + Vector Search)
+- Source citations
+- Server-Sent Events (SSE) streaming
+- Multiple embedding providers
 - REST API
 
 ## Technology Stack
@@ -36,32 +40,35 @@ The project demonstrates:
 ## Architecture
 
 ```text
-                REST API
+                 REST API
                    │
-       ┌───────────┴────────────┐
-       ▼                        ▼
-Document Upload            Chat Request
-       │                        │
-       ▼                        ▼
-Document Service          Chat Memory
-       │                        │
-       ▼                        ▼
-Document Processor      Document Search
-       │                        │
-       ▼                        ▼
-Chunking Service     StreamingChatModel
-       │                        │
-       ▼                        ▼
-Embedding Service      SSE Response
-       │
-       ▼
-Embedding Provider
-       │
-       ▼
-Ollama Embeddings
-       │
-       ▼
-Elasticsearch
+      ┌────────────┴─────────────┐
+      ▼                          ▼
+Document Upload             Chat Request
+      │                          │
+      ▼                          ▼
+Document Service            Chat Memory
+      │                          │
+      ▼                          ▼
+Document Processor      Document Search Service
+      │                          │
+      ▼                          ▼
+Chunking Service       ┌──────────┴──────────┐
+      │                ▼                     ▼
+      ▼            BM25 Search        Vector Search
+Embedding Service          │                │
+      │                    └──────┬─────────┘
+      ▼                           ▼
+Embedding Provider      Reciprocal Rank Fusion
+      │                           │
+      ▼                           ▼
+Ollama Embeddings      Retrieved Sources
+      │                           │
+      ▼                           ▼
+ Elasticsearch        StreamingChatModel
+                                   │
+                                   ▼
+                             SSE Response
 ```
 
 ## Features
@@ -144,17 +151,29 @@ During a chat request:
 
 ```text
 User Question
-      ↓
+      │
+      ▼
 Generate Question Embedding
-      ↓
-Semantic Search in Elasticsearch
-      ↓
+      │
+      ▼
+BM25 Search
+      │
+      ├────────────┐
+      ▼            ▼
+Vector Search      │
+      │            │
+      └──────┬─────┘
+             ▼
+ Reciprocal Rank Fusion
+             ▼
 Retrieve Relevant Chunks
-      ↓
+             ▼
+Generate Source Citations
+             ▼
 Combine with Chat Memory
-      ↓
+             ▼
 Ollama
-      ↓
+             ▼
 AI Response
 ```
 
@@ -181,6 +200,56 @@ Token 1 → Token 2 → Token 3 → ...
 ```
 
 Conversation memory and retrieved document context are combined to produce context-aware responses.
+
+## Hybrid Search
+The chatbot combines lexical and semantic retrieval to improve answer quality.
+
+Hybrid retrieval consists of:
+
+- BM25 keyword search
+- Vector similarity search
+- Reciprocal Rank Fusion (RRF)
+
+Benefits:
+
+- Better handling of exact class names
+- Better semantic understanding
+- More accurate retrieval for technical documentation
+
+Pipeline:
+
+```text
+Question
+     │
+     ├──────────────┐
+     ▼              ▼
+ BM25 Search   Vector Search
+     │              │
+     └──────┬───────┘
+            ▼
+ Reciprocal Rank Fusion
+            ▼
+ Top document chunks
+ ```
+## Source Citations
+
+Each generated answer is accompanied by citations pointing to the document chunks used during generation.
+
+Example response:
+
+```json
+{
+  "answer": "Spring Boot simplifies application configuration [S1].",
+  "sources": [
+    {
+      "citation": "S1",
+      "sourceName": "spring-guide.pdf",
+      "chunkNumber": 4,
+      "score": 0.032
+    }
+  ]
+}
+ ```
 
 ## Running the Application
 
@@ -244,9 +313,46 @@ POST /api/chat
 
 ```json
 {
-  "answer": "Apache Kafka is a distributed event streaming platform."
+  "answer": "Spring Boot simplifies configuration [S1].",
+  "sources": [
+    {
+      "citation": "S1",
+      "sourceName": "spring-guide.pdf",
+      "chunkNumber": 2,
+      "score": 0.031
+    }
+  ]
 }
 ```
+### Stream Chat
+
+#### Request
+
+GET /api/chat/stream
+
+Parameters
+
+- sessionId
+- message
+
+Response
+
+Server-Sent Events
+
+Example:
+
+event: token
+data: {"text":"Spring"}
+
+event: token
+data: {"text":" Boot"}
+
+event: sources
+data: [...]
+
+event: done
+data: {}
+
 
 ### Clear Chat Memory
 
@@ -330,6 +436,12 @@ src/main/java
 │   ├── ChatController
 │   └── DocumentController
 ├── dto
+│   ├── ChatResult
+│   ├── SearchResult
+│   ├── DocumentSearchResult
+│   ├── DocumentSource
+│   ├── StreamTokenEvent
+│   └── StreamErrorEvent  
 ├── repository
 │   └── ChunkRepository
 ├── service
@@ -342,7 +454,17 @@ src/main/java
 │   ├── EmbeddingService
 │   ├── ElasticsearchIndexInitializer
 │   ├── DocumentProcessor
-│   └── DocumentProcessorRegistry
+│   ├── DocumentProcessorRegistry
+│   ├──ChatService
+│   ├── ChatMemoryService
+│   ├── ChunkingService
+│   ├── DocumentIngestionService
+│   ├── DocumentSearchService
+│   ├── EmbeddingService
+│   ├── ReciprocalRankFusion
+│   ├── EmbeddingProvider
+│   ├── EmbeddingProviderRegistry
+│   └── OllamaEmbeddingProvider
 └── processor
     ├── PdfDocumentProcessor
     └── TxtDocumentProcessor
@@ -350,7 +472,7 @@ src/main/java
 ## End-to-End Workflow
 
 ```text
-Upload PDF
+Upload Document
       │
       ▼
 Extract Text
@@ -363,29 +485,31 @@ Generate Embeddings
       │
       ▼
 Store in Elasticsearch
+────────────────────────────────────────────
+User Question
       │
       ▼
-────────────────────────────────────
-User asks a question
+Generate Query Embedding
       │
-      ▼
-Generate Question Embedding
-        │
-        ▼
-Semantic Search
-        │
-        ▼
-Retrieve Relevant Chunks
-        │
-        ▼
+      ├─────────────┐
+      ▼             ▼
+BM25 Search   Vector Search
+      │             │
+      └──────┬──────┘
+             ▼
+Reciprocal Rank Fusion
+             ▼
+Top Chunks
+             ▼
+Generate Source Citations
+             ▼
 Combine with Chat Memory
-        │
-        ▼
+             ▼
 StreamingChatModel
-        │
-        ▼
-Stream AI Tokens (SSE)
-        │
-        ▼
+             ▼
+Stream Tokens (SSE)
+             ▼
+Return Sources
+             ▼
 Persist Conversation
 ```
