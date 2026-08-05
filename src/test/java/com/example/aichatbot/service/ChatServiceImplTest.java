@@ -1,5 +1,6 @@
 package com.example.aichatbot.service;
 
+import com.example.aichatbot.dto.DocumentSearchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -24,7 +25,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
@@ -35,7 +35,9 @@ class ChatServiceImplTest {
     private static final String MESSAGE = "MESSAGE";
     private static final String CONTEXT = "Context";
     private static final String AI_ANSWER = "Ai message";
-
+    public static final DocumentSearchResult DOCUMENT_SEARCH_RESULT = new DocumentSearchResult("Context", List.of());
+    private static final DocumentSearchResult EMPTY_SEARCH_RESULT =
+            new DocumentSearchResult("", List.of());
     private ChatService chatServiceImpl;
 
     @Mock
@@ -124,7 +126,7 @@ class ChatServiceImplTest {
         List<ChatMessage> messages = new ArrayList<>();
 
         when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
-
+        when(documentSearchService.search(anyString())).thenReturn(DOCUMENT_SEARCH_RESULT);
         SseEmitter emitter = chatServiceImpl.stream(SESSION_ID, MESSAGE);
 
         assertNotNull(emitter);
@@ -140,7 +142,6 @@ class ChatServiceImplTest {
                 handlerCaptor.capture()
         );
 
-        assertSame(messages, messagesCaptor.getValue());
 
         StreamingChatResponseHandler handler = handlerCaptor.getValue();
 
@@ -165,6 +166,7 @@ class ChatServiceImplTest {
                 new RuntimeException("Streaming failed");
 
         when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(documentSearchService.search(MESSAGE)).thenReturn(DOCUMENT_SEARCH_RESULT);
 
         SseEmitter emitter = chatServiceImpl.stream(SESSION_ID, MESSAGE);
 
@@ -174,7 +176,7 @@ class ChatServiceImplTest {
                 ArgumentCaptor.forClass(StreamingChatResponseHandler.class);
 
         verify(streamingChatModel).chat(
-                same(messages),
+                anyList(),
                 handlerCaptor.capture()
         );
 
@@ -192,14 +194,15 @@ class ChatServiceImplTest {
         List<ChatMessage> messages = new ArrayList<>();
 
         when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
-
+        when(documentSearchService.search(MESSAGE))
+                .thenReturn(EMPTY_SEARCH_RESULT);
         chatServiceImpl.stream(SESSION_ID, MESSAGE);
 
         ArgumentCaptor<StreamingChatResponseHandler> handlerCaptor =
                 ArgumentCaptor.forClass(StreamingChatResponseHandler.class);
 
         verify(streamingChatModel).chat(
-                same(messages),
+                anyList(),
                 handlerCaptor.capture()
         );
 
@@ -207,8 +210,11 @@ class ChatServiceImplTest {
                 .aiMessage(AiMessage.from(""))
                 .build();
 
-        handlerCaptor.getValue().onCompleteResponse(response);
-
+        handlerCaptor.getValue().onCompleteResponse(
+                ChatResponse.builder()
+                        .aiMessage(AiMessage.from(""))
+                        .build()
+        );
         verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
         verify(memoryService).addAiMessage(SESSION_ID, "");
     }
