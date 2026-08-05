@@ -1,6 +1,7 @@
 package com.example.aichatbot.service;
 
 import com.example.aichatbot.dto.FileType;
+import com.example.aichatbot.exception.UnsupportedFileTypeException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,8 +40,8 @@ public class FileTypeResolverTest {
 
     @Test
     public void shouldThrowExceptionWhenFileNameNotSupported() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UnsupportedFileTypeException exception = assertThrows(
+                UnsupportedFileTypeException.class,
                 () -> fileTypeResolver.resolveFileType("file.doc")
         );
 

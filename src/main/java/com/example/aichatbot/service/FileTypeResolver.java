@@ -1,6 +1,7 @@
 package com.example.aichatbot.service;
 
 import com.example.aichatbot.dto.FileType;
+import com.example.aichatbot.exception.UnsupportedFileTypeException;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
@@ -18,6 +19,6 @@ public class FileTypeResolver {
         if (lowerCaseName.endsWith(".txt")) {
             return FileType.TXT;
         }
-        throw new IllegalArgumentException("Only TXT and PDF files are supported");
+        throw new UnsupportedFileTypeException("Only TXT and PDF files are supported");
     }
 }
