@@ -101,7 +101,7 @@ public final class ChatServiceImpl implements ChatService {
 
                     @Override
                     public void onCompleteResponse(
-                            dev.langchain4j.model.chat.response.ChatResponse response
+                            ChatResponse response
                     ) {
                         memoryService.addUserMessage(sessionId, message);
                         memoryService.addAiMessage(
@@ -151,7 +151,7 @@ public final class ChatServiceImpl implements ChatService {
 
         messages.add(UserMessage.from(message));
 
-        dev.langchain4j.model.chat.response.ChatResponse response =
+        ChatResponse response =
                 model.chat(messages);
 
         String answer = response.aiMessage().text();

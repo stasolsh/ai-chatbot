@@ -4,7 +4,6 @@ import com.example.aichatbot.dto.DocumentChunk;
 import com.example.aichatbot.dto.DocumentUploadResponse;
 import com.example.aichatbot.dto.StoredChunk;
 import com.example.aichatbot.repository.ChunkRepository;
-import com.example.aichatbot.repository.ElasticsearchChunkRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 

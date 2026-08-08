@@ -106,47 +106,6 @@ public final class DocumentSearchServiceImpl implements DocumentSearchService {
         return new DocumentSearchResult(context, sources);
     }
 
-    private static String buildContext(List<SearchResult> results) {
-        return IntStream.range(0, results.size())
-                .mapToObj(index -> {
-                    SearchResult result = results.get(index);
-                    String citation = "[S" + (index + 1) + "]";
-
-                    return """
-                            %s
-                            Source: %s
-                            Chunk: %d
-                            Content:
-                            %s
-                            """.formatted(
-                            citation,
-                            result.sourceName(),
-                            result.chunkNumber(),
-                            result.content()
-                    );
-                })
-                .collect(Collectors.joining("\n---\n"));
-    }
-
-    private static List<DocumentSource> buildSources(
-            List<SearchResult> results
-    ) {
-        return IntStream.range(0, results.size())
-                .mapToObj(index -> {
-                    SearchResult result = results.get(index);
-
-                    return new DocumentSource(
-                            "S" + (index + 1),
-                            result.documentId(),
-                            result.sourceName(),
-                            result.chunkNumber(),
-                            excerpt(result.content()),
-                            result.score()
-                    );
-                })
-                .toList();
-    }
-
     private static String excerpt(String content) {
         return content.length() <= EXCERPT_LENGTH
                 ? content
