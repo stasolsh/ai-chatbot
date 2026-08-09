@@ -1,5 +1,6 @@
 package com.example.aichatbot.service;
 
+import com.example.aichatbot.dto.ChatResult;
 import com.example.aichatbot.dto.DocumentSearchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
@@ -9,25 +10,23 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class ChatServiceImplTest {
 
@@ -206,10 +205,6 @@ class ChatServiceImplTest {
                 handlerCaptor.capture()
         );
 
-        ChatResponse response = ChatResponse.builder()
-                .aiMessage(AiMessage.from(""))
-                .build();
-
         handlerCaptor.getValue().onCompleteResponse(
                 ChatResponse.builder()
                         .aiMessage(AiMessage.from(""))
@@ -217,6 +212,22 @@ class ChatServiceImplTest {
         );
         verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
         verify(memoryService).addAiMessage(SESSION_ID, "");
+    }
+
+
+    @Test
+    void shouldReturnChatResult() {
+        List<ChatMessage> messages = new ArrayList<>();
+        when(documentSearchService.search(MESSAGE)).thenReturn(DOCUMENT_SEARCH_RESULT);
+        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(model.chat(anyList())).thenReturn(ChatResponse.builder()
+                .aiMessage(AiMessage.from(AI_ANSWER))
+                .build());
+
+        ChatResult chatResult = chatServiceImpl.chatResult(SESSION_ID, MESSAGE);
+        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
+
+        assertEquals(AI_ANSWER, chatResult.answer());
     }
 
     @Test
