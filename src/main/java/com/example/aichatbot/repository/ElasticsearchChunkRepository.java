@@ -14,6 +14,7 @@ import java.util.stream.IntStream;
 
 @Service
 public class ElasticsearchChunkRepository implements ChunkRepository {
+    private static final String DOCUMENTS = "documents";
     private final ElasticsearchClient client;
     public ElasticsearchChunkRepository(ElasticsearchClient client) {
         this.client = client;
@@ -22,25 +23,14 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
     @Override
     public void save(StoredChunk chunk) throws IOException {
         client.index(i -> i
-                .index("documents")
+                .index(DOCUMENTS)
                 .id(chunk.id())
                 .document(chunk));
     }
 
     @Override
     public List<StoredChunk> search(float[] embedding, int limit) throws IOException {
-        SearchResponse<StoredChunk> response = client.search(s -> s
-                        .index("documents")
-                        .knn(knn -> knn
-                                .field("embedding")
-                                .queryVector(toFloatList(embedding))
-                                .k(limit)
-                                .numCandidates(50)
-                        ),
-                StoredChunk.class
-        );
-
-        return response.hits().hits().stream()
+        return getStoredChunkSearchResponse(embedding, limit).hits().hits().stream()
                 .map(Hit::source)
                 .filter(Objects::nonNull)
                 .toList();
@@ -50,7 +40,7 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
     public List<SearchResult> searchByText(String query, int limit) throws IOException {
         SearchResponse<StoredChunk> response = client.search(
                 search -> search
-                        .index("documents")
+                        .index(DOCUMENTS)
                         .size(limit)
                         .query(q -> q.match(m -> m
                                 .field("content")
@@ -71,9 +61,17 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
             float[] embedding,
             int limit
     ) throws IOException {
-        SearchResponse<StoredChunk> response = client.search(
+        return getStoredChunkSearchResponse(embedding, limit).hits()
+                .hits()
+                .stream()
+                .map(this::toSearchResult)
+                .toList();
+    }
+
+    private SearchResponse<StoredChunk> getStoredChunkSearchResponse(float[] embedding, int limit) throws IOException {
+        return client.search(
                 search -> search
-                        .index("documents")
+                        .index(DOCUMENTS)
                         .knn(knn -> knn
                                 .field("embedding")
                                 .queryVector(toFloatList(embedding))
@@ -82,12 +80,6 @@ public class ElasticsearchChunkRepository implements ChunkRepository {
                         ),
                 StoredChunk.class
         );
-
-        return response.hits()
-                .hits()
-                .stream()
-                .map(this::toSearchResult)
-                .toList();
     }
 
     private SearchResult toSearchResult(Hit<StoredChunk> hit) {
