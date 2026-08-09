@@ -15,7 +15,6 @@ import java.util.stream.IntStream;
 @Service
 public final class DocumentSearchServiceImpl implements DocumentSearchService {
     private static final int TOP_K = 5;
-    private static final int EXCERPT_LENGTH = 250;
     private static final int RESULT_LIMIT = 5;
     private static final int CANDIDATE_LIMIT = 20;
     private final EmbeddingService embeddingService;
@@ -104,11 +103,5 @@ public final class DocumentSearchServiceImpl implements DocumentSearchService {
                         .toList();
 
         return new DocumentSearchResult(context, sources);
-    }
-
-    private static String excerpt(String content) {
-        return content.length() <= EXCERPT_LENGTH
-                ? content
-                : content.substring(0, EXCERPT_LENGTH) + "...";
     }
 }
