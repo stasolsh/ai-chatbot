@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.mapping.DenseVectorSimilarity;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.example.aichatbot.dto.SearchResult;
 import com.example.aichatbot.dto.StoredChunk;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @Testcontainers
@@ -26,6 +28,14 @@ public class ElasticsearchChunkRepositoryIntegrationTest {
 
     private static final String INDEX_NAME = "documents";
     private static final int DIMS = 3;
+    private static  StoredChunk CHANK = new StoredChunk(
+            "chunk-1",
+            "doc-1",
+            "sours name",
+            0,
+            "Java Spring Boot Elasticsearch AI chatbot",
+            new float[]{1.0f, 0.0f, 0.0f}
+    );
 
     @Container
     private static ElasticsearchContainer elasticsearch =
@@ -60,16 +70,7 @@ public class ElasticsearchChunkRepositoryIntegrationTest {
 
     @Test
     public void shouldSaveAndSearchChunkByVector() throws IOException {
-        StoredChunk chunk = new StoredChunk(
-                "chunk-1",
-                "doc-1",
-                "sours name",
-                0,
-                "Java Spring Boot Elasticsearch AI chatbot",
-                new float[]{1.0f, 0.0f, 0.0f}
-        );
-
-        repository.save(chunk);
+        repository.save(CHANK);
 
         client.indices().refresh(r -> r.index(INDEX_NAME));
 
@@ -80,6 +81,36 @@ public class ElasticsearchChunkRepositoryIntegrationTest {
         assertEquals("chunk-1", result.getFirst().id());
         assertEquals("doc-1", result.getFirst().documentId());
         assertEquals("Java Spring Boot Elasticsearch AI chatbot", result.getFirst().content());
+    }
+
+    @Test
+    public void shouldSaveAndSearchChunkByText() throws IOException {
+        repository.save(CHANK);
+
+        client.indices().refresh(r -> r.index(INDEX_NAME));
+
+        List<SearchResult> result =
+                repository.searchByText("Java ?", 1);
+        assertEquals(1, result.size());
+        assertEquals("chunk-1", result.getFirst().id());
+        assertEquals("doc-1", result.getFirst().documentId());
+        assertTrue(result.getFirst().content().contains("Java"));
+    }
+
+
+    @Test
+    public void shouldSaveAndSearchByVector() throws IOException {
+        repository.save(CHANK);
+
+        client.indices().refresh(r -> r.index(INDEX_NAME));
+
+        List<SearchResult> result =
+                repository.searchByVector(new float[]{1.0f, 0.0f, 0.0f}, 1);
+
+        assertEquals(1, result.size());
+        assertEquals("chunk-1", result.getFirst().id());
+        assertEquals("doc-1", result.getFirst().documentId());
+        assertTrue(result.getFirst().content().contains("Java"));
     }
 
     private void createIndex() throws IOException {
