@@ -24,6 +24,8 @@ The project demonstrates:
 - Server-Sent Events (SSE) streaming
 - Multiple embedding providers
 - REST API
+- Fully containerized runtime with Docker Compose
+- PostgreSQL database support
 
 ## Technology Stack
 
@@ -32,7 +34,8 @@ The project demonstrates:
 * LangChain4j
 * Ollama
 * Elasticsearch
-* Docker Compose
+* PostgreSQL
+* Docker / Docker Compose
 * Apache PDFBox
 * Spring MVC Server-Sent Events (SSE)
 * Spring Data JPA (Conversation Persistence)
@@ -253,43 +256,98 @@ Example response:
 
 ## Running the Application
 
-### Start Infrastructure
+The complete application stack is containerized with Docker Compose.
+
+### Docker Services
+
+The Compose environment runs:
+
+- `ai-chatbot` — Spring Boot application
+- `ollama` — local LLM and embedding models
+- `elasticsearch` — document chunks, BM25 search, and vector search
+- `postgres` — relational database
+
+Persistent Docker volumes are used for Ollama models, Elasticsearch data, and PostgreSQL data.
+
+### Build and Start the Complete Stack
 
 ```bash
+docker compose up --build -d
+```
+
+For a clean rebuild without Docker build cache:
+
+```bash
+docker compose down
+docker compose build --no-cache
 docker compose up -d
 ```
 
-### Pull Models
+Check service status:
+
+```bash
+docker compose ps
+```
+
+### Service Endpoints
+
+| Service | Host endpoint | Container endpoint |
+| --- | --- | --- |
+| AI Chatbot | `http://localhost:8080` | `http://ai-chatbot:8080` |
+| Ollama | `http://localhost:11434` | `http://ollama:11434` |
+| Elasticsearch | `http://localhost:9200` | `http://elasticsearch:9200` |
+| PostgreSQL | `localhost:5432` | `postgres:5432` |
+
+Docker service names are used for communication between containers. The Spring Boot container therefore connects to `ollama`, `elasticsearch`, and `postgres` instead of `localhost`.
+
+### Ollama Models
+
+The environment uses the following models:
+
+```text
+llama3.1
+nomic-embed-text
+```
+
+If the models are not initialized automatically, pull them with:
 
 ```bash
 docker exec -it ollama ollama pull llama3.1
 docker exec -it ollama ollama pull nomic-embed-text
 ```
 
-### Run Application
+### PostgreSQL
 
-```bash
-mvn clean spring-boot:run
-```
+PostgreSQL replaces the previous H2 runtime database. Spring Boot connects through the PostgreSQL JDBC driver and Spring Data JPA.
 
-## Docker Services
-
-### Ollama
+Docker configuration uses:
 
 ```text
-http://localhost:11434
+Database: aichatbot
+Host inside Docker: postgres
+Port: 5432
 ```
 
-### Elasticsearch
+Database data is stored in the `postgres-data` Docker volume and survives container recreation.
 
-```text
-http://localhost:9200
-```
+### Elasticsearch Health Check
 
-Health check:
+From the host:
 
 ```bash
-curl http://localhost:9200
+curl http://localhost:9200/_cluster/health
+```
+
+### Stop the Environment
+
+```bash
+docker compose down
+```
+
+To also remove persistent volumes and all stored data:
+
+```bash
+docker compose down -v
 ```
 
 ## API
