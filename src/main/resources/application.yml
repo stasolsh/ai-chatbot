@@ -1,13 +1,27 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 ollama:
-  base-url: http://localhost:11434
-  model: llama3.1
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:llama3.1}
 
 elasticsearch:
-  hostname: localhost
-  port: 9200
+  hostname: ${ELASTICSEARCH_HOST:localhost}
+  port: ${ELASTICSEARCH_PORT:9200}
 
 embedding:
-  provider: ollama
+  provider: ${EMBEDDING_PROVIDER:ollama}
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aichatbot}
+    username: ${DB_USERNAME:aichatbot}
+    password: ${DB_PASSWORD:aichatbot}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false

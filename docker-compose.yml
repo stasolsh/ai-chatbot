@@ -1,24 +1,108 @@
 services:
 
+  ai-chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-chatbot
+    ports:
+      - "8080:8080"
+      - "9890:9890"
+    environment:
+      SERVER_PORT: 8080
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      EMBEDDING_PROVIDER: ollama
+      DB_URL: jdbc:postgresql://postgres:5432/aichatbot
+      DB_USERNAME: aichatbot
+      DB_PASSWORD: aichatbot
+      JAVA_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9890
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
     container_name: ollama
     ports:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: >
+      sh -c "
+      ollama pull llama3.1 &&
+      ollama pull nomic-embed-text
+      "
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
 
   elasticsearch:
-    image: elasticsearch:8.17.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
     container_name: elasticsearch
-
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
-
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
     ports:
       - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://elasticsearch:9200/_cluster/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: aichatbot
+      POSTGRES_USER: aichatbot
+      POSTGRES_PASSWORD: aichatbot
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U aichatbot -d aichatbot"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
 volumes:
   ollama-data:
+  elasticsearch-data:
+  postgres-data:
