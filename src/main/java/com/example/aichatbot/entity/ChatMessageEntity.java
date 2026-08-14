@@ -4,64 +4,59 @@ import com.example.aichatbot.dto.MessageRole;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(name = "chat_messages",
+        indexes = {
+                @Index(
+                        name = "idx_chat_message_conversation_created",
+                        columnList = "conversation_id, created_at"
+                )
+        }
+)
 public class ChatMessageEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private String sessionId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "conversation_id",
+            nullable = false
+    )
+    private ConversationEntity conversation;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private MessageRole role;
 
-    @Column(length = 10_000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    private Instant createdAt = Instant.now();
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
+    protected ChatMessageEntity() {
 
-    public UUID getId() {
-        return id;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
+    public ChatMessageEntity(ConversationEntity conversation, MessageRole role, String content) {
+        this.conversation = conversation;
+        this.role = role;
+        this.content = content;
+        this.createdAt = Instant.now();
     }
 
     public MessageRole getRole() {
         return role;
     }
 
-    public void setRole(MessageRole role) {
-        this.role = role;
-    }
-
     public String getContent() {
         return content;
     }
 
-    public void setContent(String content) {
-        this.content = content;
-    }
-
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 
 }
