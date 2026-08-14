@@ -12,7 +12,7 @@ A simple AI chatbot built with Java 21, Spring Boot, LangChain4j, Ollama, and El
 The project demonstrates:
 
 - Local LLM integration with Ollama
-- Session-based conversational memory
+- PostgreSQL-backed session-based conversational memory
 - Retrieval-Augmented Generation (RAG)
 - PDF and TXT document processing
 - Automatic document chunking
@@ -88,9 +88,9 @@ llama3.1
 
 ### Chat Memory
 
-Conversation history is stored per session.
+Conversation history is persisted in PostgreSQL per session and survives application restarts.
 
-The application keeps the latest messages for each user session and sends them together with new prompts, enabling contextual conversations.
+The application stores the complete conversation history and loads the latest 10 messages for each session into the LLM context, enabling contextual conversations without allowing the prompt to grow indefinitely.
 
 Example:
 
@@ -473,7 +473,9 @@ OllamaEmbeddingProvider
 ```
 ## Conversation Persistence
 
-Conversation history is managed through a dedicated ChatMemoryService.
+Conversation history is persisted in PostgreSQL through the `ChatMemoryService` abstraction. Each conversation is associated with a `sessionId`, while individual messages preserve their role (`USER` or `AI`), content, and timestamp.
+
+The database keeps the complete conversation history. When processing a new request, the application loads the latest 10 messages and restores them in chronological order before sending them to the LLM. Clearing chat memory removes the corresponding persisted conversation.
 
 ```text
 ChatService
@@ -482,8 +484,26 @@ ChatService
 ChatMemoryService
       │
       ▼
-Persistence Layer
+ChatMemoryServiceImpl
+      │
+      ├── ConversationRepository
+      └── ChatMessageRepository
+                 │
+                 ▼
+             PostgreSQL
 ```
+
+### Conversation Persistence Tests
+
+The persistence layer is covered by both unit and integration tests. Unit tests mock the repositories and verify the `ChatMemoryService` behavior in isolation. Integration tests use a real PostgreSQL instance through Testcontainers to verify JPA mappings, persistence, ordering, session isolation, the latest-10-message limit, and clearing conversation history.
+
+Key integration scenarios:
+
+- Persist and reload USER and AI messages
+- Restore messages in chronological order
+- Keep different `sessionId` conversations isolated
+- Load only the latest 10 messages into the LLM context
+- Clear one conversation without affecting other sessions
 
 ## Project Structure
 
@@ -501,7 +521,9 @@ src/main/java
 │   ├── StreamTokenEvent
 │   └── StreamErrorEvent  
 ├── repository
-│   └── ChunkRepository
+│   ├── ChunkRepository
+│   ├── ConversationRepository
+│   └── ChatMessageRepository
 ├── service
 │   ├── ChatService
 │   ├── ChatMemoryService
