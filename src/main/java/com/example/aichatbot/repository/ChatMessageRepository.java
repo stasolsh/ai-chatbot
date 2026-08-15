@@ -8,5 +8,9 @@ import java.util.List;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, Integer> {
-    List<ChatMessageEntity> findTop10ByConversationSessionIdOrderByCreatedAtDesc(String sessionId);
+    List<ChatMessageEntity>
+    findTop10ByConversationUserIdAndConversationSessionIdOrderByCreatedAtDesc(
+            String userId,
+            String sessionId
+    );
 }

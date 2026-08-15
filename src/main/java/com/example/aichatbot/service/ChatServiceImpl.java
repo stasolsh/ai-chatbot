@@ -24,18 +24,18 @@ import java.util.Map;
 @Service
 public final class ChatServiceImpl implements ChatService {
     private static final String DOCUMENT_CONTEXT = """
-        Answer using the conversation and document context.
-
-        When information comes from a document, cite the corresponding source
-        using its exact marker, for example [S1] or [S2].
-
-        Do not invent citation markers.
-        Do not cite a source that does not support the statement.
-        When the documents do not contain the answer, clearly say so.
-
-        Document context:
-        %s
-        """;
+            Answer using the conversation and document context.
+            
+            When information comes from a document, cite the corresponding source
+            using its exact marker, for example [S1] or [S2].
+            
+            Do not invent citation markers.
+            Do not cite a source that does not support the statement.
+            When the documents do not contain the answer, clearly say so.
+            
+            Document context:
+            %s
+            """;
     private final ObjectMapper objectMapper;
     private final ChatModel model;
     private final ChatMemoryService memoryService;
@@ -51,29 +51,29 @@ public final class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public String chat(String sessionId, String message) {
+    public String chat(String userId, String sessionId, String message) {
         String context = documentSearchService.findRelevantContext(message);
-        List<ChatMessage> messages = memoryService.getMessages(sessionId);
+        List<ChatMessage> messages = memoryService.getMessages(userId, sessionId);
         if (!context.isBlank()) {
             messages.add(SystemMessage.from(DOCUMENT_CONTEXT.formatted(context)));
         }
         messages.add(UserMessage.from(message));
         ChatResponse response = model.chat(messages);
         String answer = response.aiMessage().text();
-        memoryService.addUserMessage(sessionId, message);
-        memoryService.addAiMessage(sessionId, answer);
+        memoryService.addUserMessage(userId, sessionId, message);
+        memoryService.addAiMessage(userId, sessionId, answer);
         return answer;
     }
 
     @Override
-    public SseEmitter stream(String sessionId, String message) {
+    public SseEmitter stream(String userId, String sessionId, String message) {
         SseEmitter emitter = new SseEmitter(120_000L);
 
         DocumentSearchResult searchResult =
                 documentSearchService.search(message);
 
         List<ChatMessage> messages =
-                new ArrayList<>(memoryService.getMessages(sessionId));
+                new ArrayList<>(memoryService.getMessages(userId, sessionId));
 
         if (!searchResult.context().isBlank()) {
             messages.add(SystemMessage.from(
@@ -103,8 +103,9 @@ public final class ChatServiceImpl implements ChatService {
                     public void onCompleteResponse(
                             ChatResponse response
                     ) {
-                        memoryService.addUserMessage(sessionId, message);
+                        memoryService.addUserMessage(userId, sessionId, message);
                         memoryService.addAiMessage(
+                                userId,
                                 sessionId,
                                 answer.toString()
                         );
@@ -136,12 +137,12 @@ public final class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public ChatResult chatResult(String sessionId, String message) {
+    public ChatResult chatResult(String userId, String sessionId, String message) {
         DocumentSearchResult searchResult =
                 documentSearchService.search(message);
 
         List<ChatMessage> messages =
-                new ArrayList<>(memoryService.getMessages(sessionId));
+                new ArrayList<>(memoryService.getMessages(userId, sessionId));
 
         if (!searchResult.context().isBlank()) {
             messages.add(SystemMessage.from(
@@ -156,15 +157,15 @@ public final class ChatServiceImpl implements ChatService {
 
         String answer = response.aiMessage().text();
 
-        memoryService.addUserMessage(sessionId, message);
-        memoryService.addAiMessage(sessionId, answer);
+        memoryService.addUserMessage(userId, sessionId, message);
+        memoryService.addAiMessage(userId, sessionId, answer);
 
         return new ChatResult(answer, searchResult.sources());
     }
 
     @Override
-    public void clearMemory(String sessionId) {
-        memoryService.clear(sessionId);
+    public void clearMemory(String userId, String sessionId) {
+        memoryService.clear(userId, sessionId);
     }
 
     private void sendEvent(

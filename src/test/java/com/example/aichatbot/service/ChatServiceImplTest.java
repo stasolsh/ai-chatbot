@@ -31,6 +31,7 @@ import static org.mockito.Mockito.*;
 class ChatServiceImplTest {
 
     private static final String SESSION_ID = "SESSIONID";
+    private static final String USER_ID = "USER_ID";
     private static final String MESSAGE = "MESSAGE";
     private static final String CONTEXT = "Context";
     private static final String AI_ANSWER = "Ai message";
@@ -68,10 +69,10 @@ class ChatServiceImplTest {
                 .build();
 
         when(documentSearchService.findRelevantContext(MESSAGE)).thenReturn(CONTEXT);
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(model.chat(anyList())).thenReturn(chatResponse);
 
-        String result = chatServiceImpl.chat(SESSION_ID, MESSAGE);
+        String result = chatServiceImpl.chat(USER_ID, SESSION_ID, MESSAGE);
 
         assertEquals(AI_ANSWER, result);
 
@@ -86,8 +87,8 @@ class ChatServiceImplTest {
         assertInstanceOf(SystemMessage.class, sentMessages.get(0));
         assertInstanceOf(UserMessage.class, sentMessages.get(1));
 
-        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
-        verify(memoryService).addAiMessage(SESSION_ID, AI_ANSWER);
+        verify(memoryService).addUserMessage(USER_ID, SESSION_ID, MESSAGE);
+        verify(memoryService).addAiMessage(USER_ID, SESSION_ID, AI_ANSWER);
     }
 
     @Test
@@ -99,10 +100,10 @@ class ChatServiceImplTest {
                 .build();
 
         when(documentSearchService.findRelevantContext(MESSAGE)).thenReturn("");
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(model.chat(anyList())).thenReturn(chatResponse);
 
-        String result = chatServiceImpl.chat(SESSION_ID, MESSAGE);
+        String result = chatServiceImpl.chat(USER_ID, SESSION_ID, MESSAGE);
 
         assertEquals(AI_ANSWER, result);
 
@@ -116,17 +117,17 @@ class ChatServiceImplTest {
         assertEquals(1, sentMessages.size());
         assertInstanceOf(UserMessage.class, sentMessages.getFirst());
 
-        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
-        verify(memoryService).addAiMessage(SESSION_ID, AI_ANSWER);
+        verify(memoryService).addUserMessage(USER_ID, SESSION_ID, MESSAGE);
+        verify(memoryService).addAiMessage(USER_ID, SESSION_ID, AI_ANSWER);
     }
 
     @Test
     void shouldStreamResponseAndSaveCompleteAnswerToMemory() {
         List<ChatMessage> messages = new ArrayList<>();
 
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(documentSearchService.search(anyString())).thenReturn(DOCUMENT_SEARCH_RESULT);
-        SseEmitter emitter = chatServiceImpl.stream(SESSION_ID, MESSAGE);
+        SseEmitter emitter = chatServiceImpl.stream(USER_ID, SESSION_ID, MESSAGE);
 
         assertNotNull(emitter);
 
@@ -154,8 +155,8 @@ class ChatServiceImplTest {
 
         handler.onCompleteResponse(response);
 
-        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
-        verify(memoryService).addAiMessage(SESSION_ID, "Hello World");
+        verify(memoryService).addUserMessage(USER_ID, SESSION_ID, MESSAGE);
+        verify(memoryService).addAiMessage(USER_ID, SESSION_ID, "Hello World");
     }
 
     @Test
@@ -164,10 +165,10 @@ class ChatServiceImplTest {
         RuntimeException streamingError =
                 new RuntimeException("Streaming failed");
 
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(documentSearchService.search(MESSAGE)).thenReturn(DOCUMENT_SEARCH_RESULT);
 
-        SseEmitter emitter = chatServiceImpl.stream(SESSION_ID, MESSAGE);
+        SseEmitter emitter = chatServiceImpl.stream(USER_ID, SESSION_ID, MESSAGE);
 
         assertNotNull(emitter);
 
@@ -182,20 +183,20 @@ class ChatServiceImplTest {
         handlerCaptor.getValue().onError(streamingError);
 
         verify(memoryService, never())
-                .addUserMessage(anyString(), anyString());
+                .addUserMessage(anyString(), anyString(), anyString());
 
         verify(memoryService, never())
-                .addAiMessage(anyString(), anyString());
+                .addAiMessage(anyString(), anyString(), anyString());
     }
 
     @Test
     void shouldSaveEmptyAnswerWhenStreamingCompletesWithoutTokens() {
         List<ChatMessage> messages = new ArrayList<>();
 
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(documentSearchService.search(MESSAGE))
                 .thenReturn(EMPTY_SEARCH_RESULT);
-        chatServiceImpl.stream(SESSION_ID, MESSAGE);
+        chatServiceImpl.stream(USER_ID, SESSION_ID, MESSAGE);
 
         ArgumentCaptor<StreamingChatResponseHandler> handlerCaptor =
                 ArgumentCaptor.forClass(StreamingChatResponseHandler.class);
@@ -210,8 +211,8 @@ class ChatServiceImplTest {
                         .aiMessage(AiMessage.from(""))
                         .build()
         );
-        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
-        verify(memoryService).addAiMessage(SESSION_ID, "");
+        verify(memoryService).addUserMessage(USER_ID, SESSION_ID, MESSAGE);
+        verify(memoryService).addAiMessage(USER_ID, SESSION_ID, "");
     }
 
 
@@ -219,20 +220,20 @@ class ChatServiceImplTest {
     void shouldReturnChatResult() {
         List<ChatMessage> messages = new ArrayList<>();
         when(documentSearchService.search(MESSAGE)).thenReturn(DOCUMENT_SEARCH_RESULT);
-        when(memoryService.getMessages(SESSION_ID)).thenReturn(messages);
+        when(memoryService.getMessages(USER_ID, SESSION_ID)).thenReturn(messages);
         when(model.chat(anyList())).thenReturn(ChatResponse.builder()
                 .aiMessage(AiMessage.from(AI_ANSWER))
                 .build());
 
-        ChatResult chatResult = chatServiceImpl.chatResult(SESSION_ID, MESSAGE);
-        verify(memoryService).addUserMessage(SESSION_ID, MESSAGE);
+        ChatResult chatResult = chatServiceImpl.chatResult(USER_ID, SESSION_ID, MESSAGE);
+        verify(memoryService).addUserMessage(USER_ID, SESSION_ID, MESSAGE);
 
         assertEquals(AI_ANSWER, chatResult.answer());
     }
 
     @Test
     void shouldClearMemory() {
-        chatServiceImpl.clearMemory(SESSION_ID);
-        verify(memoryService).clear(SESSION_ID);
+        chatServiceImpl.clearMemory(USER_ID, SESSION_ID);
+        verify(memoryService).clear(USER_ID, SESSION_ID);
     }
 }

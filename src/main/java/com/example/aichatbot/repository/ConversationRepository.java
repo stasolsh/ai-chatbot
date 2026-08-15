@@ -8,6 +8,14 @@ import java.util.Optional;
 
 @Repository
 public interface ConversationRepository extends JpaRepository<ConversationEntity, Long> {
-    Optional<ConversationEntity> findBySessionId(String sessionId);
-    void deleteBySessionId(String sessionId);
+    Optional<ConversationEntity>
+    findByUserIdAndSessionId(
+            String userId,
+            String sessionId
+    );
+
+    void deleteByUserIdAndSessionId(
+            String userId,
+            String sessionId
+    );
 }
