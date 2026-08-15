@@ -26,6 +26,9 @@ The project demonstrates:
 - REST API
 - Fully containerized runtime with Docker Compose
 - PostgreSQL database support
+- OAuth2/OIDC authentication with JWT
+- Role-based endpoint authorization
+- User-scoped conversation history
 
 ## Technology Stack
 
@@ -39,6 +42,8 @@ The project demonstrates:
 * Apache PDFBox
 * Spring MVC Server-Sent Events (SSE)
 * Spring Data JPA (Conversation Persistence)
+* Spring Security
+* OAuth2 Resource Server / JWT
 
 ## Architecture
 
@@ -88,9 +93,9 @@ llama3.1
 
 ### Chat Memory
 
-Conversation history is persisted in PostgreSQL per session and survives application restarts.
+Conversation history is persisted in PostgreSQL per authenticated user and session and survives application restarts.
 
-The application stores the complete conversation history and loads the latest 10 messages for each session into the LLM context, enabling contextual conversations without allowing the prompt to grow indefinitely.
+The application stores the complete conversation history and loads the latest 10 messages for the authenticated user and session into the LLM context, enabling contextual conversations without allowing the prompt to grow indefinitely. The JWT subject is used as the user identity; `sessionId` identifies a conversation and is not used as a security boundary.
 
 Example:
 
@@ -350,6 +355,45 @@ To also remove persistent volumes and all stored data:
 docker compose down -v
 ```
 
+## Security
+
+The REST API is protected with Spring Security and OAuth2/OIDC JWT authentication. The application acts as an OAuth2 Resource Server and derives the authenticated user identity from the JWT instead of accepting a user ID from request parameters.
+
+Authorization rules:
+
+- `/api/chat/**` requires an authenticated user.
+- `/api/documents/**` requires the `ADMIN` role.
+- `/actuator/health` can remain publicly accessible for container/orchestrator health checks.
+- All other endpoints are denied unless explicitly configured.
+
+Conversation ownership is based on both the authenticated user and the conversation session:
+
+```text
+JWT subject (userId) + sessionId -> Conversation
+```
+
+This prevents a user from accessing or deleting another user's conversation by guessing a `sessionId`.
+
+JWT issuer configuration:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI}
+```
+
+Tests can provide a test issuer through `application-test.yml` and use Spring Security's MockMvc `jwt()` request post-processor, so a real identity provider is not required for controller/security tests.
+
+Typical responses:
+
+- `401 Unauthorized` — authentication/JWT is missing or invalid.
+- `403 Forbidden` — the authenticated user does not have the required role.
+
+Document-level ACL filtering is prepared as a future extension for Confluence synchronization, where BM25 and vector retrieval can be filtered by authenticated user/group permissions.
+
 ## API
 
 ### Chat
@@ -473,7 +517,7 @@ OllamaEmbeddingProvider
 ```
 ## Conversation Persistence
 
-Conversation history is persisted in PostgreSQL through the `ChatMemoryService` abstraction. Each conversation is associated with a `sessionId`, while individual messages preserve their role (`USER` or `AI`), content, and timestamp.
+Conversation history is persisted in PostgreSQL through the `ChatMemoryService` abstraction. Each conversation is associated with an authenticated `userId` and `sessionId`, while individual messages preserve their role (`USER` or `AI`), content, and timestamp.
 
 The database keeps the complete conversation history. When processing a new request, the application loads the latest 10 messages and restores them in chronological order before sending them to the LLM. Clearing chat memory removes the corresponding persisted conversation.
 
@@ -501,7 +545,7 @@ Key integration scenarios:
 
 - Persist and reload USER and AI messages
 - Restore messages in chronological order
-- Keep different `sessionId` conversations isolated
+- Keep conversations isolated by authenticated user and `sessionId`
 - Load only the latest 10 messages into the LLM context
 - Clear one conversation without affecting other sessions
 
@@ -510,6 +554,7 @@ Key integration scenarios:
 ```text
 src/main/java
 ├── config
+│   └── SecurityConfig
 ├── controller
 │   ├── ChatController
 │   └── DocumentController
