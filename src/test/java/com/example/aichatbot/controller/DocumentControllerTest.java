@@ -10,12 +10,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(DocumentController.class)
 @AutoConfigureJsonTesters
+@ActiveProfiles("test")
 public class DocumentControllerTest {
     private static final DocumentUploadResponse DOCUMENT_UPLOAD_RESPONSE = new DocumentUploadResponse(
             "oracle_sql_1z0_071_cheatsheet.pdf",
@@ -46,7 +52,17 @@ public class DocumentControllerTest {
                 "Hello from test file".getBytes()
         );
         mockMvc.perform(multipart("/api/documents/upload")
-                        .file(file))
+                        .file(file)
+                        .with(jwt()
+                                .jwt(jwt -> jwt
+                                        .subject("user1")
+                                        .claim("roles", List.of("USER"))
+                                )
+                                .authorities(
+                                        new SimpleGrantedAuthority("ROLE_USER")
+                                )
+                        )
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fileName").value(DOCUMENT_UPLOAD_RESPONSE.fileName()))
                 .andExpect(jsonPath("$.size").value(DOCUMENT_UPLOAD_RESPONSE.size()))

@@ -6,6 +6,7 @@ import com.example.aichatbot.dto.ChatResult;
 import com.example.aichatbot.service.ChatService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -21,9 +22,11 @@ public class ChatController {
 
     @PostMapping
     public ChatApiResponse chat(
+            Authentication authentication,
             @Valid @RequestBody ChatRequest request
     ) {
         ChatResult result = chatService.chatResult(
+                authentication.getName(),
                 request.sessionId(),
                 request.message()
         );
@@ -35,15 +38,16 @@ public class ChatController {
     }
 
     @DeleteMapping("/{sessionId}")
-    public void clearMemory(@PathVariable String sessionId) {
-        chatService.clearMemory(sessionId);
+    public void clearMemory(Authentication authentication, @PathVariable String sessionId) {
+        chatService.clearMemory(authentication.getName(), sessionId);
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(
+            Authentication authentication,
             @RequestParam String sessionId,
             @RequestParam String message) {
 
-        return chatService.stream(sessionId, message);
+        return chatService.stream(authentication.getName(), sessionId, message);
     }
 }

@@ -12,6 +12,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -19,17 +21,21 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(ChatController.class)
+@ActiveProfiles("test")
 @AutoConfigureJsonTesters
 public class ChatControllerTest {
     private static final ChatResult CHAT_RESULT_OBJECT = new ChatResult("Any possible answer.", List.of());
@@ -46,9 +52,18 @@ public class ChatControllerTest {
 
     @Test
     public void shouldVerifyChatEndpoint() throws Exception {
-        when(chatServiceImpl.chatResult(anyString(), anyString())).thenReturn(CHAT_RESULT_OBJECT);
+        when(chatServiceImpl.chatResult(anyString(), anyString(), anyString())).thenReturn(CHAT_RESULT_OBJECT);
         MvcResult mvcResult = mockMvc.perform(
                         MockMvcRequestBuilders.post("/api/chat")
+                                .with(jwt()
+                                        .jwt(jwt -> jwt
+                                                .subject("user1")
+                                                .claim("roles", List.of("USER"))
+                                        )
+                                        .authorities(
+                                                new SimpleGrantedAuthority("ROLE_USER")
+                                        )
+                                )
                                 .content(chatRequestJacksonTester.write(CHAT_REQUEST).getJson())
                                 .contentType(APPLICATION_JSON)
                                 .accept(APPLICATION_JSON))
@@ -62,9 +77,20 @@ public class ChatControllerTest {
     @Test
     public void shouldVerifyClearMemory() throws Exception {
         String sessionId = "stas";
-        mockMvc.perform(delete("/api/chat/" +  sessionId))
+        String userId = "userId1";
+        mockMvc.perform(delete("/api/chat/" + sessionId)
+                        .with(jwt()
+                                .jwt(jwt -> jwt
+                                        .subject("userId1")
+                                        .claim("roles", List.of("USER"))
+                                )
+                                .authorities(
+                                        new SimpleGrantedAuthority("ROLE_USER")
+                                )
+                        ))
+
                 .andExpect(status().isOk());
-        verify(chatServiceImpl).clearMemory(sessionId);
+        verify(chatServiceImpl).clearMemory(userId, sessionId);
 
     }
 
@@ -72,10 +98,19 @@ public class ChatControllerTest {
     void shouldStreamChatResponse() throws Exception {
         SseEmitter emitter = new SseEmitter();
 
-        when(chatServiceImpl.stream("user1", "Hello"))
+        when(chatServiceImpl.stream("userId1", "user1", "Hello"))
                 .thenReturn(emitter);
 
         MvcResult result = mockMvc.perform(get("/api/chat/stream")
+                        .with(jwt()
+                                .jwt(jwt -> jwt
+                                        .subject("userId1")
+                                        .claim("roles", List.of("USER"))
+                                )
+                                .authorities(
+                                        new SimpleGrantedAuthority("ROLE_USER")
+                                )
+                        )
                         .param("sessionId", "user1")
                         .param("message", "Hello")
                         .accept(MediaType.TEXT_EVENT_STREAM))

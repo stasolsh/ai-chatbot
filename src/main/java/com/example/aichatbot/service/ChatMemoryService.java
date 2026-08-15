@@ -4,12 +4,28 @@ import dev.langchain4j.data.message.ChatMessage;
 
 import java.util.List;
 
-public sealed interface ChatMemoryService permits ChatMemoryServiceImpl {
-    List<ChatMessage> getMessages(String sessionId);
+public sealed interface ChatMemoryService
+        permits ChatMemoryServiceImpl {
 
-    void addUserMessage(String sessionId, String message);
+    List<ChatMessage> getMessages(
+            String userId,
+            String sessionId
+    );
 
-    void addAiMessage(String sessionId, String answer);
+    void addUserMessage(
+            String userId,
+            String sessionId,
+            String message
+    );
 
-    void clear(String sessionId);
+    void addAiMessage(
+            String userId,
+            String sessionId,
+            String answer
+    );
+
+    void clear(
+            String userId,
+            String sessionId
+    );
 }

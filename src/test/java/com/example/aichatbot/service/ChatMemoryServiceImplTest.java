@@ -25,6 +25,7 @@ import static org.mockito.Mockito.*;
 public class ChatMemoryServiceImplTest {
 
     private static final String SESSION_ID = "SESSIONID";
+    private static final String USER_ID = "USER_ID";
     private static final String USER_MESSAGE = "Hello";
     private static final String AI_ANSWER = "Hello! How can I help?";
 
@@ -47,10 +48,10 @@ public class ChatMemoryServiceImplTest {
     @Test
     public void shouldReturnEmptyMessagesWhenConversationDoesNotExist() {
         when(chatMessageRepository
-                .findTop10ByConversationSessionIdOrderByCreatedAtDesc(SESSION_ID))
+                .findTop10ByConversationUserIdAndConversationSessionIdOrderByCreatedAtDesc(USER_ID, SESSION_ID))
                 .thenReturn(List.of());
 
-        List<ChatMessage> result = service.getMessages(SESSION_ID);
+        List<ChatMessage> result = service.getMessages(USER_ID, SESSION_ID);
 
         assertThat(result).isEmpty();
     }
@@ -76,10 +77,10 @@ public class ChatMemoryServiceImplTest {
 
         // Repository returns newest first
         when(chatMessageRepository
-                .findTop10ByConversationSessionIdOrderByCreatedAtDesc(SESSION_ID))
+                .findTop10ByConversationUserIdAndConversationSessionIdOrderByCreatedAtDesc(USER_ID, SESSION_ID))
                 .thenReturn(List.of(aiMessage, userMessage));
 
-        List<ChatMessage> result = service.getMessages(SESSION_ID);
+        List<ChatMessage> result = service.getMessages(USER_ID, SESSION_ID);
 
         assertThat(result).hasSize(2);
 
@@ -95,10 +96,10 @@ public class ChatMemoryServiceImplTest {
         ConversationEntity conversation =
                 new ConversationEntity(SESSION_ID);
 
-        when(conversationRepository.findBySessionId(SESSION_ID))
+        when(conversationRepository.findByUserIdAndSessionId(USER_ID, SESSION_ID))
                 .thenReturn(Optional.of(conversation));
 
-        service.addUserMessage(SESSION_ID, USER_MESSAGE);
+        service.addUserMessage(USER_ID, SESSION_ID, USER_MESSAGE);
 
         verify(chatMessageRepository)
                 .save(argThat(message ->
@@ -115,10 +116,10 @@ public class ChatMemoryServiceImplTest {
         ConversationEntity conversation =
                 new ConversationEntity(SESSION_ID);
 
-        when(conversationRepository.findBySessionId(SESSION_ID))
+        when(conversationRepository.findByUserIdAndSessionId(USER_ID, SESSION_ID))
                 .thenReturn(Optional.of(conversation));
 
-        service.addAiMessage(SESSION_ID, AI_ANSWER);
+        service.addAiMessage(USER_ID, SESSION_ID, AI_ANSWER);
 
         verify(chatMessageRepository)
                 .save(argThat(message ->
@@ -132,13 +133,13 @@ public class ChatMemoryServiceImplTest {
         ConversationEntity conversation =
                 new ConversationEntity(SESSION_ID);
 
-        when(conversationRepository.findBySessionId(SESSION_ID))
+        when(conversationRepository.findByUserIdAndSessionId(USER_ID, SESSION_ID))
                 .thenReturn(Optional.empty());
 
         when(conversationRepository.save(any(ConversationEntity.class)))
                 .thenReturn(conversation);
 
-        service.addUserMessage(SESSION_ID, USER_MESSAGE);
+        service.addUserMessage(USER_ID, SESSION_ID, USER_MESSAGE);
 
         verify(conversationRepository)
                 .save(argThat(entity ->
@@ -154,9 +155,9 @@ public class ChatMemoryServiceImplTest {
 
     @Test
     public void shouldClearConversation() {
-        service.clear(SESSION_ID);
+        service.clear(USER_ID, SESSION_ID);
 
         verify(conversationRepository)
-                .deleteBySessionId(SESSION_ID);
+                .deleteByUserIdAndSessionId(USER_ID, SESSION_ID);
     }
 }
