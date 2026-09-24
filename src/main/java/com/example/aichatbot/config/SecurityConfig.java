@@ -5,9 +5,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class SecurityConfig {
@@ -48,18 +53,30 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter rolesConverter =
-                new JwtGrantedAuthoritiesConverter();
-
-        rolesConverter.setAuthoritiesClaimName("roles");
-        rolesConverter.setAuthorityPrefix("ROLE_");
-
         JwtAuthenticationConverter converter =
                 new JwtAuthenticationConverter();
 
-        converter.setJwtGrantedAuthoritiesConverter(
-                rolesConverter
-        );
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+
+            Map<String, Object> realmAccess =
+                    jwt.getClaim("realm_access");
+
+            if (realmAccess == null) {
+                return List.of();
+            }
+
+            Object roles = realmAccess.get("roles");
+
+            if (!(roles instanceof Collection<?> roleCollection)) {
+                return List.of();
+            }
+
+            return roleCollection.stream()
+                    .map(Object::toString)
+                    .map(role -> (GrantedAuthority)
+                            new SimpleGrantedAuthority("ROLE_" + role))
+                    .toList();
+        });
 
         return converter;
     }
