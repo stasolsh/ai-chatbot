@@ -22,7 +22,7 @@ import java.util.Map;
 
 
 @Service
-public final class ChatServiceImpl implements ChatService {
+public class ChatServiceImpl implements ChatService {
     private static final String DOCUMENT_CONTEXT = """
             Answer using the conversation and document context.
             

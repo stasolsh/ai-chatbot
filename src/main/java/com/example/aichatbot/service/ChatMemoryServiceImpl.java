@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-public final class ChatMemoryServiceImpl
+public class ChatMemoryServiceImpl
         implements ChatMemoryService {
 
     private final ConversationRepository conversationRepository;

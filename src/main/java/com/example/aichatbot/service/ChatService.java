@@ -3,8 +3,7 @@ package com.example.aichatbot.service;
 import com.example.aichatbot.dto.ChatResult;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-public sealed interface ChatService
-        permits ChatServiceImpl {
+public interface ChatService {
 
     String chat(
             String userId,

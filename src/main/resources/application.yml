@@ -31,3 +31,11 @@ spring:
         jwt:
           issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8081/realms/ai-chatbot}
           jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8081/realms/ai-chatbot/protocol/openid-connect/certs}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
