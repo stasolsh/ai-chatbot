@@ -1,0 +1,68 @@
+{
+  "realm": "ai-chatbot",
+  "enabled": true,
+  "displayName": "AI Chatbot",
+
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Regular AI Chatbot user"
+      },
+      {
+        "name": "ADMIN",
+        "description": "AI Chatbot administrator"
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "ai-chatbot-client",
+      "name": "AI Chatbot Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true
+    }
+  ],
+
+  "users": [
+    {
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Normal",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    },
+    {
+      "username": "admin-user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "ADMIN"
+      ]
+    }
+  ]
+}
