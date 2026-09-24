@@ -4,8 +4,7 @@ import dev.langchain4j.data.message.ChatMessage;
 
 import java.util.List;
 
-public sealed interface ChatMemoryService
-        permits ChatMemoryServiceImpl {
+public interface ChatMemoryService {
 
     List<ChatMessage> getMessages(
             String userId,
